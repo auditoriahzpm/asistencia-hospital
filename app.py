@@ -4,6 +4,7 @@ from google.oauth2.service_account import Credentials
 from datetime import datetime
 import urllib.parse
 import time
+import json
 
 st.set_page_config(page_title="SIGP - Hospital Isola", page_icon="🏥", layout="wide")
 
@@ -11,28 +12,9 @@ st.set_page_config(page_title="SIGP - Hospital Isola", page_icon="🏥", layout=
 def obtener_cliente_gspread():
     scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
     
-    if "gcp_service_account" in st.secrets:
-        # Método directo sin procesamiento intermedio de claves pesadas
-        sec = st.secrets["gcp_service_account"]
-        
-        # Reconstruimos el diccionario asegurando el formato exacto que exige Google
-        private_key = sec["private_key"]
-        if not private_key.startswith("-----BEGIN PRIVATE KEY-----"):
-            private_key = f"-----BEGIN PRIVATE KEY-----\n{private_key}\n-----END PRIVATE KEY-----\n"
-        
-        creds_dict = {
-            "type": sec["type"],
-            "project_id": sec["project_id"],
-            "private_key_id": sec["private_key_id"],
-            "private_key": private_key.replace("\\n", "\n"),
-            "client_email": sec["client_email"],
-            "client_id": sec["client_id"],
-            "auth_uri": sec["auth_uri"],
-            "token_uri": sec["token_uri"],
-            "auth_provider_x509_cert_url": sec["auth_provider_x509_cert_url"],
-            "client_x509_cert_url": sec["client_x509_cert_url"],
-            "universe_domain": sec.get("universe_domain", "googleapis.com")
-        }
+    if "service_account_json" in st.secrets:
+        # Carga directa mediante JSON deserializado (elimina por completo el error de archivos PEM)
+        creds_dict = json.loads(st.secrets["service_account_json"])
         creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
     else:
         creds = Credentials.from_service_account_file("credenciales.json", scopes=scopes)
