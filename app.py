@@ -4,7 +4,6 @@ from google.oauth2.service_account import Credentials
 from datetime import datetime
 import urllib.parse
 import time
-import json
 
 st.set_page_config(page_title="SIGP - Hospital Isola", page_icon="🏥", layout="wide")
 
@@ -12,9 +11,15 @@ st.set_page_config(page_title="SIGP - Hospital Isola", page_icon="🏥", layout=
 def obtener_cliente_gspread():
     scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
     
-    if "service_account_json" in st.secrets:
-        # Carga directa mediante JSON deserializado (elimina por completo el error de archivos PEM)
-        creds_dict = json.loads(st.secrets["service_account_json"])
+    if "gcp_service_account" in st.secrets:
+        creds_dict = dict(st.secrets["gcp_service_account"])
+        # Limpieza y formato automático de la clave privada
+        if "private_key" in creds_dict:
+            pk = creds_dict["private_key"]
+            if "\\n" in pk:
+                pk = pk.replace("\\n", "\n")
+            creds_dict["private_key"] = pk.strip()
+            
         creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
     else:
         creds = Credentials.from_service_account_file("credenciales.json", scopes=scopes)
