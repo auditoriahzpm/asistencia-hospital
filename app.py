@@ -12,12 +12,13 @@ st.set_page_config(page_title="SIGP - Hospital Isola", page_icon="🏥", layout=
 def obtener_cliente_gspread():
     scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
     
-    # Si está en la nube de Streamlit, usa los secretos seguros configurados
     if "gcp_service_account" in st.secrets:
         creds_dict = dict(st.secrets["gcp_service_account"])
+        # Limpiador automático por si el navegador alteró las barras de la clave privada
+        if "private_key" in creds_dict:
+            creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
         creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
     else:
-        # Si lo abrís en tu PC local, busca el archivo físico
         creds = Credentials.from_service_account_file("credenciales.json", scopes=scopes)
         
     return gspread.authorize(creds)
@@ -69,7 +70,6 @@ try:
     BASE_SERVICIOS, TELEFONOS, AGENTES_POR_SERVICIO, DNI_POR_AGENTE, SALDOS_AGENTES, hoja_cierre = cargar_datos_excel()
     fecha_hoy = datetime.now().strftime("%d/%m/%Y")
     
-    # Sincronización rápida
     datos_cierre = hoja_cierre.get_all_records()
     firmas_db = [str(f.get("ID_Servicio", "")).strip() for f in datos_cierre if str(f.get("Fecha", "")).strip() in [f"'{fecha_hoy}", fecha_hoy]]
     st.session_state.firmas_hoy = list(set(firmas_db))
