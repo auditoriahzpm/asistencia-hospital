@@ -13,16 +13,9 @@ def obtener_cliente_gspread():
     scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
     
     if "gcp_service_account" in st.secrets:
-        creds_dict = dict(st.secrets["gcp_service_account"])
-        
-        # Limpieza robusta de la clave privada para evitar errores de formato PEM
-        if "private_key" in creds_dict:
-            pk = creds_dict["private_key"]
-            pk = pk.replace("\\n", "\n")  # Reemplaza barras por saltos reales si los hubiera
-            # Asegura que tenga los encabezados y pies correctos limpios de espacios extra
-            creds_dict["private_key"] = pk.strip()
-            
-        creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+        # Extraemos los datos de los secretos de forma limpia sin procesar llaves criptográficas pesadas
+        secrets_dict = dict(st.secrets["gcp_service_account"])
+        creds = Credentials.from_service_account_info(secrets_dict, scopes=scopes)
     else:
         creds = Credentials.from_service_account_file("credenciales.json", scopes=scopes)
         
