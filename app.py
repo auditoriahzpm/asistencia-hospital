@@ -12,15 +12,34 @@ def obtener_cliente_gspread():
     scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
     
     if "gcp_service_account" in st.secrets:
-        # Como usamos comillas triples en Secrets, pasamos el diccionario directo sin alterar la clave
-        creds_dict = dict(st.secrets["gcp_service_account"])
+        # Método directo sin procesamiento intermedio de claves pesadas
+        sec = st.secrets["gcp_service_account"]
+        
+        # Reconstruimos el diccionario asegurando el formato exacto que exige Google
+        private_key = sec["private_key"]
+        if not private_key.startswith("-----BEGIN PRIVATE KEY-----"):
+            private_key = f"-----BEGIN PRIVATE KEY-----\n{private_key}\n-----END PRIVATE KEY-----\n"
+        
+        creds_dict = {
+            "type": sec["type"],
+            "project_id": sec["project_id"],
+            "private_key_id": sec["private_key_id"],
+            "private_key": private_key.replace("\\n", "\n"),
+            "client_email": sec["client_email"],
+            "client_id": sec["client_id"],
+            "auth_uri": sec["auth_uri"],
+            "token_uri": sec["token_uri"],
+            "auth_provider_x509_cert_url": sec["auth_provider_x509_cert_url"],
+            "client_x509_cert_url": sec["client_x509_cert_url"],
+            "universe_domain": sec.get("universe_domain", "googleapis.com")
+        }
         creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
     else:
         creds = Credentials.from_service_account_file("credenciales.json", scopes=scopes)
         
     return gspread.authorize(creds)
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=30)
 def cargar_datos_excel():
     cliente = obtener_cliente_gspread()
     doc = cliente.open("SIGP - Hospital Isola")
@@ -62,7 +81,7 @@ def cargar_datos_excel():
 if 'firmas_hoy' not in st.session_state:
     st.session_state.firmas_hoy = []
 
-# Carga de datos
+# Carga de datos con manejo visual de errores detallados
 try:
     BASE_SERVICIOS, TELEFONOS, AGENTES_POR_SERVICIO, DNI_POR_AGENTE, SALDOS_AGENTES, hoja_cierre = cargar_datos_excel()
     fecha_hoy = datetime.now().strftime("%d/%m/%Y")
@@ -71,7 +90,7 @@ try:
     firmas_db = [str(f.get("ID_Servicio", "")).strip() for f in datos_cierre if str(f.get("Fecha", "")).strip() in [f"'{fecha_hoy}", fecha_hoy]]
     st.session_state.firmas_hoy = list(set(firmas_db))
 except Exception as e:
-    st.error(f"Error cargando datos: {e}")
+    st.error(f"⚠️ Error de conexión con Google Sheets: {e}")
     BASE_SERVICIOS, TELEFONOS, AGENTES_POR_SERVICIO, DNI_POR_AGENTE, SALDOS_AGENTES, hoja_cierre = {}, {}, {}, {}, {}, None
 
 # --- UI ---
