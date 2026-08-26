@@ -15,11 +15,11 @@ def obtener_cliente_gspread():
     if "gcp_service_account" in st.secrets:
         creds_dict = dict(st.secrets["gcp_service_account"])
         
-        # Corrección avanzada para transformar el texto plano '\n' en saltos reales de software
+        # Normalizador ultra robusto para la clave privada (elimina cualquier conflicto de barras o saltos)
         if "private_key" in creds_dict:
-            pk = creds_dict["private_key"]
-            pk = pk.replace("\\n", "\n")
-            creds_dict["private_key"] = pk
+            pk = str(creds_dict["private_key"])
+            pk = pk.replace("\\\\n", "\n").replace("\\n", "\n")
+            creds_dict["private_key"] = pk.strip()
             
         creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
     else:
@@ -134,7 +134,7 @@ with st.container():
 
     if st.button("📤 Enviar Parte Diario", use_container_width=True, type="primary"):
         if bloquear_envio:
-            st.error("No se puede enviar el parte porque uno ou más agentes no tienen saldo suficiente.")
+            st.error("No se puede enviar el parte porque uno o más agentes no tienen saldo suficiente.")
         elif servicio and pin_ingresado == BASE_SERVICIOS.get(servicio):
             if servicio in st.session_state.firmas_hoy:
                 st.warning("Este servicio ya envió su confirmación en el día de hoy.")
