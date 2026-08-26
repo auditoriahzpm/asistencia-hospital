@@ -13,9 +13,15 @@ def obtener_cliente_gspread():
     scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
     
     if "gcp_service_account" in st.secrets:
-        # Extraemos los datos de los secretos de forma limpia sin procesar llaves criptográficas pesadas
-        secrets_dict = dict(st.secrets["gcp_service_account"])
-        creds = Credentials.from_service_account_info(secrets_dict, scopes=scopes)
+        creds_dict = dict(st.secrets["gcp_service_account"])
+        
+        # Corrección avanzada para transformar el texto plano '\n' en saltos reales de software
+        if "private_key" in creds_dict:
+            pk = creds_dict["private_key"]
+            pk = pk.replace("\\n", "\n")
+            creds_dict["private_key"] = pk
+            
+        creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
     else:
         creds = Credentials.from_service_account_file("credenciales.json", scopes=scopes)
         
@@ -128,7 +134,7 @@ with st.container():
 
     if st.button("📤 Enviar Parte Diario", use_container_width=True, type="primary"):
         if bloquear_envio:
-            st.error("No se puede enviar el parte porque uno o más agentes no tienen saldo suficiente.")
+            st.error("No se puede enviar el parte porque uno ou más agentes no tienen saldo suficiente.")
         elif servicio and pin_ingresado == BASE_SERVICIOS.get(servicio):
             if servicio in st.session_state.firmas_hoy:
                 st.warning("Este servicio ya envió su confirmación en el día de hoy.")
